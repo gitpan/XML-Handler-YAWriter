@@ -12,7 +12,7 @@ package XML::Handler::YAWriter;
 use strict;
 use vars qw($VERSION);
 
-$VERSION="0.22";
+$VERSION="0.23";
 
 sub new {
     my $type = shift;
@@ -40,7 +40,10 @@ sub start_document {
 
     if ($self->{'AsFile'}) {
 	require IO::File;
-	$self->{'Output'} = new IO::File(">".$self->{'AsFile'});
+	$self->{'Output'} = new IO::File(">".$self->{'AsFile'}) || die "$!";
+    } elsif ($self->{'AsPipe'}) {
+	require IO::File;
+	$self->{'Output'} = new IO::File("|".$self->{'AsPipe'}) || die "$!";
     }
 
     $self->{'NoString'} = ($self->{'Output'} && ! $self->{'AsArray'});
@@ -304,6 +307,12 @@ This option will cause start_document to open named file and end_document
 to close it. Use the literal dash "-" if you want to print on standard
 output.
 
+=item AsPipe string
+
+This option will cause start_document to open a pipe and end_document
+to close it. The pipe is a normal shell command. Secure shell comes handy
+but has a 2GB limit on most systems.
+
 =item AsArray boolean
 
 This option will force storage of the XML in $ya->{Strings}, even if the
@@ -437,7 +446,7 @@ as Output before you call start_document and close this File after
 calling end_document. Or provide a filename in AsFile, so start_document
 and end_document can open and close its own filehandle.
   
-Automatic recoding between 8bit and 16bit does not yet work correctly !
+Automatic recoding between 8bit and 16bit does not work in any Perl correctly !
 
 I have Perl-5.00563 at home and here I can specify "use utf8;" in the right
 places to make recoding work. But I dislike saying "use 5.00555;" because
