@@ -6,7 +6,7 @@
 # Change 1..1 below to 1..last_test_to_print .
 # (It may become useful if the test is moved to ./t subdirectory.)
 
-BEGIN { $| = 1; print "1..4\n"; }
+BEGIN { $| = 1; print "1..5\n"; }
 END {print "not ok 1\n" unless $loaded;}
 use XML::Handler::YAWriter;
 use XML::Parser::PerlSAX;
@@ -55,3 +55,15 @@ print "ok 3\n";
    $parser->parse( 'Source' => { 'SystemId' => 'linux.3.xml' } );
 
 print "ok 4\n";
+
+   $handler->{'AsFile'} = 'action.tst';
+   $handler->{'Pretty'} = {
+	NoProlog => 1,
+	NoWhiteSpace => 1,
+	CatchEmptyElement => 1,
+	PrettyWhiteIndent => 1,
+	PrettyWhiteNewline => 1
+	};
+   $parser->parse( 'Source' => { 'SystemId' => 'action.xml' } );
+
+print "ok 5\n";

@@ -13,7 +13,7 @@ use strict;
 use vars qw($VERSION);
 use IO::File;
 
-$VERSION="0.14";
+$VERSION="0.15";
 
 sub new {
     my $type = shift;
@@ -173,20 +173,20 @@ sub end_element {
 sub characters {
     my ($self, $characters) = @_;
 
-    my $output = $self->encode($characters->{Data});
+    return unless defined $characters->{Data};
 
-    return unless $output;
+    my $output = $self->encode($characters->{Data});
 
     if ($self->{'Pretty'}{'catchwhitespace'}) {
 	$output =~ s/^([ \t\n\r]+)//; $self->print("<!--", $1, "-->") if $1;
-	return unless $output;
+	return if $output eq "";
 	$output =~ s/([ \t\n\r]+)\$//; $self->print("<!--", $1, "-->") if $1;
-	return unless $output;
+	return if $output eq "";
     } elsif ($self->{'Pretty'}{'nowhitespace'}) {
 	$output =~ s/^([ \t\n\r]+)//;
-	return unless $output;
+	return if $output eq "";
 	$output =~ s/([ \t\n\r]+)\$//;
-	return unless $output;
+	return if $output eq "";
     }
 
     $self->print(undef, $output, undef);
@@ -225,9 +225,9 @@ sub print {
 
     $sendbuf .= $self->{'Indent'} x $self->{'LastCount'} if $self->{'Indent'};
     $sendbuf .= $self->{Sendleft} if ($self->{Sendleft});
-    $sendbuf .= $self->{Sendbuf} if $self->{Sendbuf};
+    $sendbuf .= $self->{Sendbuf} if defined $self->{Sendbuf};
     $sendbuf .= $self->{'ElemSPC'}.$self->{Sendright} if $self->{Sendright};
-    $sendbuf .= $self->{'LeftSPC'} if $self->{Sendbuf};
+    $sendbuf .= $self->{'LeftSPC'} if defined $self->{Sendbuf};
 
     if ($sendbuf) {
     	$self->{Output}->print( $sendbuf )  if     $self->{Output};
