@@ -1,5 +1,5 @@
 # 
-# Copyright (c) 1998 Michael Koehne <kraehe@copyleft.de>
+# Copyright (c) 1999 Michael Koehne <kraehe@copyleft.de>
 # 
 # XML::Handler::YAWriter is free software. You can redistribute
 # and/or modify this copy under terms of GNU General Public License.
@@ -13,7 +13,7 @@ use strict;
 use vars qw($VERSION);
 use IO::File;
 
-$VERSION="0.13";
+$VERSION="0.14";
 
 sub new {
     my $type = shift;
@@ -33,6 +33,7 @@ $escapes = { '&'  => '&amp;',
 
 sub start_document {
     my ($self, $document) = @_;
+    my ($lc,$uc);
 
     $self->{'Strings'}  = [];
     $self->{'Escape'}   = $escapes unless $self->{'Escape'};
@@ -42,13 +43,27 @@ sub start_document {
 
     $self->{'NoString'} = ($self->{'Output'} && ! $self->{'AsArray'});
 
-    $self->{'Pretty'}   = {} unless ref($self->{'Pretty'}) eq "HASH";
-    $self->{'LeftSPC'}  = $self->{'Pretty'}{'PrettyWhiteNewline'} ? "\n" : "";
-    $self->{'Indent'}   = $self->{'Pretty'}{'PrettyWhiteIndent'} ? "  " : "";
-    $self->{'AttrSPC'}  = $self->{'Pretty'}{'AddHiddenAttrTab'} ? "\n\t" : " ";
-    $self->{'ElemSPC'}  = $self->{'Pretty'}{'AddHiddenNewLine'} ? "\n" : "";
+    $self->{'Pretty'}   = {}  unless ref($self->{'Pretty'}) eq "HASH";
+
+    $uc = $self->{'Pretty'};
+    foreach (keys %$uc) {
+    	$lc = lc $_;
+	if ($lc ne $_) {
+	    $self->{'Pretty'}{$lc} = $self->{'Pretty'}{$_};
+	    delete $self->{'Pretty'}{$_};
+	}
+    }
+    $self->{'LeftSPC'}  = $self->{'Pretty'}{'prettywhitenewline'} ? "\n" : "";
+    $self->{'Indent'}   = $self->{'Pretty'}{'prettywhiteindent'} ? "  " : "";
+    $self->{'AttrSPC'}  = $self->{'Pretty'}{'addhiddenattrtab'} ? "\n\t" : " ";
+    $self->{'ElemSPC'}  = $self->{'Pretty'}{'addhiddennewline'} ? "\n" : "";
     $self->{'Counter'}  = 0;
     $self->{'Section'}  = 0;
+    $self->{LastCount}  = 0;
+
+    undef $self->{Sendleft};
+    undef $self->{Sendbuf};
+    undef $self->{Sendright};
 
     my $sub = 'sub { my ($str,$esc) = @_; $str =~ s/(' .
 		join("|", map { $_ = "\Q$_\E" } keys %{$self->{Escape}}).
@@ -58,14 +73,15 @@ sub start_document {
 
     $self->print(
     	undef,
-    	"<?xml version=\"1.0\" encoding=\"".$self->{'Encoding'}."\"?>\n",
-    	undef) unless $self->{'Pretty'}{'NoProlog'};
+    	"<?xml version=\"1.0\" encoding=\"".$self->{'Encoding'}."\"?>",
+    	undef) unless $self->{'Pretty'}{'noprolog'};
+
 }
 
 sub end_document {
     my ($self, $document) = @_;
 
-    $self->print(undef,"\n",undef);
+    $self->print(undef,"\n",undef) unless $self->{'LeftSPC'};
     $self->print(undef,undef,undef);
 
     my $string = undef;
@@ -82,23 +98,22 @@ sub end_document {
 sub doctype_decl {
     my ($self, $properties) = @_;
 
-    return if $self->{'Pretty'}{'NoDTD'};
+    return if $self->{'Pretty'}{'nodtd'};
     return unless $properties->{'Name'};
 
     my $attspc = $self->{'AttrSPC'};
     my $output = "DOCTYPE ".$properties->{'Name'};
        $output .= $attspc.'SYSTEM "'.$properties->{'SystemId'}.'"' if $properties->{'SystemId'};
        $output .= $attspc.'PUBLIC "'.$properties->{'PublicId'}.'"' if $properties->{'PublicId'};
-       $output .= $attspc.'INTERNAL "'.$properties->{'Internal'}.'"' if $properties->{'Internal'};
+       $output .= $attspc.$properties->{'Internal'} if $properties->{'Internal'};
 
     $self->print("<!",$output,">");
-    $self->print(undef,"\n",undef);
 }
 
 sub processing_instruction {
     my ($self, $pi) = @_;
 
-    return if $self->{'Pretty'}{'NoPI'};
+    return if $self->{'Pretty'}{'nopi'};
     my $output = undef;
 
     $output  = $pi->{Target}." " if $pi->{Target};
@@ -108,7 +123,7 @@ sub processing_instruction {
 
     chop $output;
 
-    if ($self->{'Pretty'}{IsSGML}) {
+    if ($self->{'Pretty'}{issgml}) {
     	$self->print("<?", $output, ">")
     } else {
     	$self->print("<?", $output, "?>")
@@ -145,7 +160,7 @@ sub end_element {
     my $name   = $element->{Name};
 
     $self->{'Counter'}--;
-    if ($self->{'Pretty'}{'CatchEmptyElement'} &&
+    if ($self->{'Pretty'}{'catchemptyelement'} &&
         ($self->{Sendbuf} =~ /^$name/ ) &&
         ($self->{Sendleft} eq "<") &&
         ($self->{Sendright} eq ">") ) {
@@ -162,12 +177,12 @@ sub characters {
 
     return unless $output;
 
-    if ($self->{'Pretty'}{'CatchWhiteSpace'}) {
+    if ($self->{'Pretty'}{'catchwhitespace'}) {
 	$output =~ s/^([ \t\n\r]+)//; $self->print("<!--", $1, "-->") if $1;
 	return unless $output;
 	$output =~ s/([ \t\n\r]+)\$//; $self->print("<!--", $1, "-->") if $1;
 	return unless $output;
-    } elsif ($self->{'Pretty'}{'NoWhiteSpace'}) {
+    } elsif ($self->{'Pretty'}{'nowhitespace'}) {
 	$output =~ s/^([ \t\n\r]+)//;
 	return unless $output;
 	$output =~ s/([ \t\n\r]+)\$//;
@@ -191,7 +206,7 @@ sub ignorable_whitespace {
 sub comment {
     my ($self, $comment) = @_;
 
-    return if $self->{'Pretty'}{'NoComments'};
+    return if $self->{'Pretty'}{'nocomments'};
     my $output = $self->encode($comment->{Data});
     return unless $output;
 
@@ -208,16 +223,11 @@ sub print {
     my ($self, $left, $output, $right) = @_;
     my $sendbuf = "";
 
-    if ($self->{Sendleft}) {
-        $sendbuf .= $self->{'LeftSPC'};
-        $sendbuf .= $self->{'Indent'} x $self->{'LastCount'}
-    		if $self->{'Indent'};
-        $sendbuf .= $self->{Sendleft};
-    }
-    $sendbuf .= $self->{Sendbuf}
-    		if $self->{Sendbuf};
-    $sendbuf .= $self->{'ElemSPC'}.$self->{Sendright}
-    		if $self->{Sendright};
+    $sendbuf .= $self->{'Indent'} x $self->{'LastCount'} if $self->{'Indent'};
+    $sendbuf .= $self->{Sendleft} if ($self->{Sendleft});
+    $sendbuf .= $self->{Sendbuf} if $self->{Sendbuf};
+    $sendbuf .= $self->{'ElemSPC'}.$self->{Sendright} if $self->{Sendright};
+    $sendbuf .= $self->{'LeftSPC'} if $self->{Sendbuf};
 
     if ($sendbuf) {
     	$self->{Output}->print( $sendbuf )  if     $self->{Output};
@@ -318,13 +328,13 @@ prettyprinting. Default to undef. Possible string values:
 
 =over
 
-=item AddHiddenNewLine boolean
+=item AddHiddenNewline boolean
 
 Add hidden newline before ">"
 
 =item AddHiddenAttrTab boolean
 
-Add hidden tabulation for attributes ">"
+Add hidden tabulation for attributes
 
 =item CatchEmptyElement boolean
 
@@ -435,7 +445,7 @@ ignorable whitespace that is caused by the various forms of pretty printing.
 		'Pretty' => {
 			'NoWhiteSpace'=>1,
 			'NoComments'=>1,
-			'AddHiddenNewLine'=>1,
+			'AddHiddenNewline'=>1,
 			'AddHiddenAttrTab'=>1,
 		} );
 
@@ -454,6 +464,6 @@ hash and gave quite a lot of usefull comments.
 
 =head1 SEE ALSO
 
-perl(1), XML::Parser::PerlSAX(3)
+L<perl> and L<XML::Parser::PerlSAX>
 
 =cut

@@ -6,3 +6,4 @@ YAWriter.pm
 test.pl
 linux.1.xml
 edifact03.dtd
+xmlpretty
