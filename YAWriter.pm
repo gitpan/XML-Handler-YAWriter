@@ -12,7 +12,7 @@ package XML::Handler::YAWriter;
 use strict;
 use vars qw($VERSION);
 
-$VERSION="0.17";
+$VERSION="0.18";
 
 sub new {
     my $type = shift;
@@ -177,14 +177,15 @@ sub characters {
 
     return unless defined $characters->{Data};
 
-    my $output = $self->encode($characters->{Data});
+		my $output = $characters->{Data};
+		$output = $self->encode($characters->{Data}) if (!$self->{'InCDATA'});
 
-    if ($self->{'Pretty'}{'catchwhitespace'}) {
+    if ($self->{'Pretty'}{'catchwhitespace'} && !$self->{'InCDATA'}) {
 	$output =~ s/^([ \t\n\r]+)//; $self->print("<!--", $1, "-->") if $1;
 	return if $output eq "";
 	$output =~ s/([ \t\n\r]+)\$//; $self->print("<!--", $1, "-->") if $1;
 	return if $output eq "";
-    } elsif ($self->{'Pretty'}{'nowhitespace'}) {
+    } elsif ($self->{'Pretty'}{'nowhitespace'} && !$self->{'InCDATA'}) {
 	$output =~ s/^([ \t\n\r]+)//;
 	return if $output eq "";
 	$output =~ s/([ \t\n\r]+)\$//;
@@ -219,6 +220,18 @@ sub encode {
     my ($self, $string) = @_;
 
     return &{$self->{EscSub}}($string, $self->{'Escape'});
+}
+
+sub start_cdata {
+	my ($self, $cdata) = @_;
+	$self->{'InCDATA'} = 1;
+	$self->print(undef, '<![CDATA[', undef);
+}
+
+sub end_cdata {
+	my ($self, $cdata) = @_;
+	$self->{'InCDATA'} = 0;
+	$self->print(undef, ']]>', undef);
 }
 
 sub print {
