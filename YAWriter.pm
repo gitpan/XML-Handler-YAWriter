@@ -19,7 +19,7 @@ use UNIVERSAL;
 use strict;
 use vars qw($VERSION);
 
-$VERSION="0.10";
+$VERSION="0.12";
 
 sub new {
     my $type = shift;
@@ -45,11 +45,13 @@ sub start_document {
     $self->{'Encoding'} = "UTF-8"  unless $self->{'Encoding'};
     $self->{'NoString'} = ($self->{'Output'} && ! $self->{'AsArray'});
 
+    $self->{'Pretty'}   = {} unless ref($self->{'Pretty'}) eq "HASH";
     $self->{'LeftSPC'}  = $self->{'Pretty'}{'PrettyWhiteNewline'} ? "\n" : "";
     $self->{'Indent'}   = $self->{'Pretty'}{'PrettyWhiteIndent'} ? "  " : "";
     $self->{'AttrSPC'}  = $self->{'Pretty'}{'AddHiddenAttrTab'} ? "\n\t" : " ";
     $self->{'ElemSPC'}  = $self->{'Pretty'}{'AddHiddenNewLine'} ? "\n" : "";
     $self->{'Counter'}  = 0;
+    $self->{'Section'}  = 0;
 
     my $sub = 'sub { my ($str,$esc) = @_; $str =~ s/(' .
 		join("|", map { $_ = "\Q$_\E" } keys %{$self->{Escape}}).
@@ -60,7 +62,7 @@ sub start_document {
     $self->print(
     	undef,
     	"<?xml version=\"1.0\" encoding=\"".$self->{'Encoding'}."\"?>\n",
-    	undef);
+    	undef) unless $self->{'Pretty'}{'NoProlog'};
 }
 
 sub end_document {
@@ -104,7 +106,7 @@ sub processing_instruction {
 
     chop $output;
 
-    if ($self->{IsSGML}) {
+    if ($self->{'Pretty'}{IsSGML}) {
     	$self->print("<?", $output, ">")
     } else {
     	$self->print("<?", $output, "?>")
@@ -128,8 +130,7 @@ sub start_element {
 	foreach $name (sort keys %$attr) {
 	    $esc_value = $self->encode($attr->{$name});
 
-    	    $output .= $attrspc;
-	    $output .= "$name=\"$esc_value\"";
+    	    $output .= $attrspc . "$name=\"$esc_value\"";
 	}
     }
 
@@ -302,12 +303,6 @@ YAWriter will use an evaluated sub to make the recoding based on a given
 Escape hash resonable fast. Future versions may use XS to improve this
 performance bottleneck.
 
-=item IsSGML boolean
-
-This option will cause start_document, processing_instruction and doctype_decl
-to appear as SGML. The SGML is still wellformed of course, if your SAX events
-are wellformed.
-
 =item Pretty hash
 
 Hash of string => boolean tuples, to define kind of
@@ -331,6 +326,12 @@ Catch emtpy Elements apply "/>" compression
 
 Catch whitespace with comments
 
+=item IsSGML boolean
+
+This option will cause start_document, processing_instruction and doctype_decl
+to appear as SGML. The SGML is still wellformed of course, if your SAX events
+are wellformed.
+
 =item NoComments boolean
 
 Supress Comments
@@ -342,6 +343,10 @@ Supress DTD
 =item NoPI boolean
 
 Supress Processing Instructions
+
+=item NoProlog boolean
+
+Supress <?xml ... ?> Prolog
 
 =item NoWhiteSpace boolean
 

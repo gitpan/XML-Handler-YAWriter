@@ -7,7 +7,7 @@
   xmlns:trcd='http://www.xml-edifact.org/LIB/xml-edifact-03/trcd.rdf'
   xmlns:tred='http://www.xml-edifact.org/LIB/xml-edifact-03/tred.rdf'
   xmlns:uncl='http://www.xml-edifact.org/LIB/xml-edifact-03/uncl.rdf'
-  xmlns:anxs='http://www.xml-edifact.org/LIB/xml-edifact-03/anxe.rdf'
+  xmlns:anxs='http://www.xml-edifact.org/LIB/xml-edifact-03/anxs.rdf'
   xmlns:anxc='http://www.xml-edifact.org/LIB/xml-edifact-03/anxc.rdf'
   xmlns:anxe='http://www.xml-edifact.org/LIB/xml-edifact-03/anxe.rdf'
   xmlns:unsl='http://www.xml-edifact.org/LIB/xml-edifact-03/unsl.rdf'
