@@ -12,7 +12,7 @@ package XML::Handler::YAWriter;
 use strict;
 use vars qw($VERSION);
 
-$VERSION="0.18";
+$VERSION="0.19";
 
 sub new {
     my $type = shift;
@@ -59,9 +59,11 @@ sub start_document {
     $self->{'Indent'}   = $self->{'Pretty'}{'prettywhiteindent'} ? "  " : "";
     $self->{'AttrSPC'}  = $self->{'Pretty'}{'addhiddenattrtab'} ? "\n\t" : " ";
     $self->{'ElemSPC'}  = $self->{'Pretty'}{'addhiddennewline'} ? "\n" : "";
+    $self->{'CompactAttr'} = $self->{'Pretty'}{'compactattrindent'};
     $self->{'Counter'}  = 0;
     $self->{'Section'}  = 0;
     $self->{LastCount}  = 0;
+    $self->{'InCDATA'}  = 0;
 
     undef $self->{Sendleft};
     undef $self->{Sendbuf};
@@ -143,6 +145,7 @@ sub start_element {
 
        $attrspc= "\n".$self->{'Indent'} x (2+$self->{'Counter'})
        		 if $self->{'Indent'};
+       $attrspc= " " if $self->{'CompactAttr'};
 
     if ($element->{Attributes}) {
 	$attr = $element->{Attributes};
@@ -360,6 +363,10 @@ Catch empty Elements, apply "/>" compression
 =item CatchWhiteSpace boolean
 
 Catch whitespace with comments
+
+=item CompactAttrIndent
+
+Places Attributes on the same line as the Element
 
 =item IsSGML boolean
 

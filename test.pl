@@ -67,3 +67,16 @@ print "ok 4\n";
    $parser->parse( 'Source' => { 'SystemId' => 'action.xml' } );
 
 print "ok 5\n";
+
+   $handler->{'AsFile'} = 'directory.tst';
+   $handler->{'Pretty'} = {
+        'NoWhiteSpace'       => 1,
+        'PrettyWhiteNewLine' => 1,
+        'PrettyWhiteIndent'  => 1,
+        'CatchEmptyElement'  => 1,
+        'AddHiddenAttrTab'   => 1,
+        'CompactAttrIndent'  => 1
+	};
+   $parser->parse( 'Source' => { 'SystemId' => 'directory.xml' } );
+
+print "ok 6\n";

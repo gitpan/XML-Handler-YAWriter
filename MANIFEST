@@ -6,5 +6,6 @@ YAWriter.pm
 test.pl
 linux.1.xml
 action.xml
+directory.xml
 edifact03.dtd
 xmlpretty
