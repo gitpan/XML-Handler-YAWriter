@@ -11,9 +11,8 @@ package XML::Handler::YAWriter;
 
 use strict;
 use vars qw($VERSION);
-use IO::File;
 
-$VERSION="0.16";
+$VERSION="0.17";
 
 sub new {
     my $type = shift;
@@ -39,7 +38,10 @@ sub start_document {
     $self->{'Escape'}   = $escapes unless $self->{'Escape'};
     $self->{'Encoding'} = "UTF-8"  unless $self->{'Encoding'};
 
-    $self->{'Output'}   = new IO::File(">".$self->{'AsFile'}) if $self->{'AsFile'};
+    if ($self->{'AsFile'}) {
+	require IO::File;
+	$self->{'Output'} = new IO::File(">".$self->{'AsFile'});
+    }
 
     $self->{'NoString'} = ($self->{'Output'} && ! $self->{'AsArray'});
 
@@ -223,11 +225,13 @@ sub print {
     my ($self, $left, $output, $right) = @_;
     my $sendbuf = "";
 
-    $sendbuf .= $self->{'Indent'} x $self->{'LastCount'} if $self->{'Indent'};
-    $sendbuf .= $self->{Sendleft} if ($self->{Sendleft});
+    if ($self->{Sendleft}) {
+	$sendbuf .= $self->{'LeftSPC'};
+	$sendbuf .= $self->{'Indent'} x $self->{'LastCount'} if $self->{'Indent'};
+	$sendbuf .= $self->{Sendleft};
+    }
     $sendbuf .= $self->{Sendbuf} if defined $self->{Sendbuf};
     $sendbuf .= $self->{'ElemSPC'}.$self->{Sendright} if $self->{Sendright};
-    $sendbuf .= $self->{'LeftSPC'} if defined $self->{Sendbuf};
 
     if ($sendbuf) {
     	$self->{Output}->print( $sendbuf )  if     $self->{Output};
