@@ -4,5 +4,8 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'	   => 'XML::Handler::YAWriter',
     'VERSION_FROM' => 'YAWriter.pm',
-    'PREREQ_PM'    => { 'XML::Parser::PerlSAX' => 0 }
+    'PREREQ_PM'    => {
+    	'XML::Parser::PerlSAX' => 0.06,
+	'IO::File' => 1.06
+	}
 );

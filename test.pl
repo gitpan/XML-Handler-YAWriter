@@ -44,8 +44,7 @@ print "ok 2\n";
 
 print "ok 3\n";
 
-   $xml_file = new IO::File( '>linux.4.xml' );
-   $handler->{'Output'} = $xml_file;
+   $handler->{'AsFile'} = 'linux.4.xml';
    $handler->{'Pretty'}{'CatchWhiteSpace'}=0;
    $handler->{'Pretty'}{'NoWhiteSpace'}=0;
    $handler->{'Pretty'}{'NoComments'}=0;
@@ -54,6 +53,5 @@ print "ok 3\n";
    $handler->{'Pretty'}{'PrettyWhiteNewline'}=1;
    $handler->{'Pretty'}{'PrettyWhiteIndent'}=1;
    $parser->parse( 'Source' => { 'SystemId' => 'linux.3.xml' } );
-   $xml_file->close();
 
 print "ok 4\n";

@@ -1,25 +1,19 @@
 # 
 # Copyright (c) 1998 Michael Koehne <kraehe@copyleft.de>
 # 
-# XML::Edifact is free software. You can redistribute and/or
-# modify this copy under terms of GNU General Public License.
-#
-# This is a 0.3x version: Anything is still in flux.
-# DO NOT EXPECT FURTHER VERSION TO BE COMPATIBLE!
+# XML::Handler::YAWriter is free software. You can redistribute
+# and/or modify this copy under terms of GNU General Public License.
 
 # Based on XML::Handler::XMLWriter Copyright (C) 1999 Ken MacLeod
 # Portions derived from code in XML::Writer by David Megginson
-# 
-# YAWriter will be dropped in one of the next XML::Edifact versions,
-# to become included in libxmlperl, if stable.
 
 package XML::Handler::YAWriter;
 
-use UNIVERSAL;
 use strict;
 use vars qw($VERSION);
+use IO::File;
 
-$VERSION="0.12";
+$VERSION="0.13";
 
 sub new {
     my $type = shift;
@@ -43,6 +37,9 @@ sub start_document {
     $self->{'Strings'}  = [];
     $self->{'Escape'}   = $escapes unless $self->{'Escape'};
     $self->{'Encoding'} = "UTF-8"  unless $self->{'Encoding'};
+
+    $self->{'Output'}   = new IO::File(">".$self->{'AsFile'}) if $self->{'AsFile'};
+
     $self->{'NoString'} = ($self->{'Output'} && ! $self->{'AsArray'});
 
     $self->{'Pretty'}   = {} unless ref($self->{'Pretty'}) eq "HASH";
@@ -73,6 +70,11 @@ sub end_document {
 
     my $string = undef;
        $string = join('', @{$self->{Strings}}) if $self->{AsString};
+
+    if ($self->{'AsFile'}) {
+	$self->{'Output'}->close();
+	undef $self->{'Output'};
+    }
 
     return($string);
 }
@@ -193,7 +195,7 @@ sub comment {
     my $output = $self->encode($comment->{Data});
     return unless $output;
 
-    $self->print("<!--", $output, "-->");
+    $self->print("<!--", " ".$output." ", "-->");
 }
 
 sub encode {
@@ -262,6 +264,12 @@ This option tells YAWriter to use an already open file for output, instead
 of using $ya->{Strings} to store the array of strings. It should be noted
 that the only thing the object needs to implement is the print method. So
 anything can be used to receive a stream of strings from YAWriter.
+
+=item AsFile string
+
+This option will cause start_document to open named file and end_document
+to close it. Use the literal dash "-" if you want to print on standard
+output.
 
 =item AsArray boolean
 
@@ -350,7 +358,7 @@ Supress <?xml ... ?> Prolog
 
 =item NoWhiteSpace boolean
 
-Supress WhiteSpace
+Supress WhiteSpace to clean documents from prior pretty printing.
 
 =item PrettyWhiteIndent boolean
 
@@ -370,24 +378,37 @@ Output only SAX1 compilant eventstrings
 
 =head2 Notes:
 
-XML::Handler::YAWriter was unbundled from XML::Edifact.
-The next XML::Edifact will need a XML Writer with a similar scope. 
+The the correct handling of start_document and end_document is required!
 
-AsString and AsArray may run out of memory with infinitve SAX streams.
-Use a self written object instead to improve streaming. The only
-thing XML::Handler::Writer wants from the object is a print method.
+The YAWriter Object initialises its structures during start_document
+and does its cleanup during end_document.  If you forget to call
+start_document, any other method will break during the run. Most likely
+place is the encode method, trying to eval undef as a subroutine. If
+you forget to call end_document, you should not use a single instance
+of YAWriter more than once.
+
 For small documents AsArray may be the fastest method and AsString
-the easiest one.
+the easiest one to receive the output of YAWriter. But AsString and
+AsArray may run out of memory with infinitve SAX streams. The only
+method XML::Handler::Writer calls on a given Output object is the print
+method. So its easy to use a self written Output object to improve
+streaming.
+
+A single instance of XML::Handler::YAWriter is able to produce more
+than one file in a single run. Ensure to provide a fresh IO::File
+as Output before you call start_document and close this File after
+calling end_document. Or provide a filename in AsFile, so start_document
+and end_document can open and close its own filehandle.
 
 Automatic recoding between 8bit and 16bit does not yet work correctly !
 
-I have Perl-5.00560 at home and here I can claim "use utf8;" in the right
+I have Perl-5.00563 at home and here I can claim "use utf8;" in the right
 places to make recoding work. But I dislike to claim "use 5.00555;" because
 many systems run 5.00503.
 
 If you use some 8bit character set internaly and want use national characters,
-state either your character as Encoding to be ISO-8859-1, or use an Escape hash
-like the following :
+state either your character as Encoding to be ISO-8859-1, or provide an Escape
+hash similar to the following :
 
 	$ya->{'Escape'} = {
 			'&'  => '&amp;',
@@ -407,7 +428,7 @@ like the following :
 You may abuse YAWriter to clean XML documents from whitespace. Take a look
 at test.pl, doing just that with an XML::Edifact message, without querying
 the DTD. This may work in 99% of the cases, where you want to get rid of
-ignorable whitespace.
+ignorable whitespace that is caused by the various forms of pretty printing.
 
 	my $ya = new XML::Handler::YAWriter( 
 		'Output' => new IO::File ( ">-" );
@@ -417,7 +438,6 @@ ignorable whitespace.
 			'AddHiddenNewLine'=>1,
 			'AddHiddenAttrTab'=>1,
 		} );
-
 
 XML::Handler::Writer implements any method XML::Parser::PerlSAX wants.
 This extens the Java SAX1.0 specifcation. I think to use Pretty=>SAX1=>1
