@@ -12,7 +12,7 @@ package XML::Handler::YAWriter;
 use strict;
 use vars qw($VERSION);
 
-$VERSION="0.20";
+$VERSION="0.21";
 
 sub new {
     my $type = shift;
@@ -180,8 +180,9 @@ sub characters {
 
     return unless defined $characters->{Data};
 
-		my $output = $characters->{Data};
-		$output = $self->encode($characters->{Data}) if (!$self->{'InCDATA'});
+    my $output = $self->{'InCDATA'} ?
+        $characters->{Data} :
+        $self->encode($characters->{Data});
 
     if ($self->{'Pretty'}{'catchwhitespace'} && !$self->{'InCDATA'}) {
 	$output =~ s/^([ \t\n\r]+)//; $self->print("<!--", $1, "-->") if $1;
@@ -194,7 +195,7 @@ sub characters {
 	$output =~ s/([ \t\n\r]+)\$//;
 	return if $output eq "";
     }
-
+    
     $self->print(undef, $output, undef);
 }
 
@@ -243,16 +244,18 @@ sub print {
 
     if ($self->{Sendleft}) {
 	$sendbuf .= $self->{'LeftSPC'};
-	$sendbuf .= $self->{'Indent'} x $self->{'LastCount'} if $self->{'Indent'};
+	$sendbuf .= $self->{'Indent'} x $self->{'LastCount'}
+            if $self->{'Indent'};
 	$sendbuf .= $self->{Sendleft};
     }
     $sendbuf .= $self->{Sendbuf} if defined $self->{Sendbuf};
     $sendbuf .= $self->{'ElemSPC'}.$self->{Sendright} if $self->{Sendright};
 
-    if ($sendbuf) {
+    if ($sendbuf ne "") {
     	$self->{Output}->print( $sendbuf )  if     $self->{Output};
     	push(@{$self->{Strings}}, $sendbuf) unless $self->{NoString};
     }
+
     $self->{Sendleft}  = $left;
     $self->{Sendbuf}   = $output;
     $self->{Sendright} = $right;

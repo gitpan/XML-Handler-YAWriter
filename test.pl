@@ -92,3 +92,16 @@ print "ok 6\n";
    $parser->parse( 'Source' => { 'SystemId' => 'cdatain.xml' } );
 
 print "ok 7\n";
+
+   $handler->{'AsFile'} = 'nullout.xml';
+   $handler->{'Pretty'} = {
+        CompactAttrIndent => 1,
+        NoComments => 1,
+        PrettyWhiteNewline => 1,
+        PrettyWhiteIndent => 1,
+        NoWhiteSpace => 1,
+        CatchEmptyElement => 1
+	};
+   $parser->parse( 'Source' => { 'SystemId' => 'nullin.xml' } );
+
+print "ok 8\n";
