@@ -1,0 +1,171 @@
+NAME
+    XML::Handler::YAWriter - Yet another Perl SAX XML Writer
+
+SYNOPSIS
+      use XML::Handler::YAWriter;
+
+      my $ya = new XML::Handler::YAWriter( %options );
+      my $perlsax = new XML::Parser::PerlSAX( 'Handler' => $ya );
+
+DESCRIPTION
+    YAWriter implements Yet Another XML::Hander::Writer. The reasons for
+    this one are that I needed a flexible escaping technique, and want some
+    kind of pretty printing. If an instances of YAWriter is created without
+    any options, the default behavior is to produce an array of strings
+    containing the XML in :
+
+      @{$ya->{Strings}}
+
+  Options
+
+    Options are given in the usual 'key' => 'value' ideom.
+
+    Output IO::File
+        This option tells YAWriter to use an already open file for output,
+        instead of using $ya->{Strings} to store the array of strings. It
+        should be noted that the only thing the object needs to implement is
+        the print method. So anything can be used to receive a stream of
+        strings from YAWriter.
+
+    AsArray boolean
+        This option will force to store the XML in $ya->{Strings} even, if
+        the Output option is given.
+
+    AsString boolean
+        This option will cause end_document to return the complete XML
+        document in a single string. Most SAX drivers return the value of
+        end_document as a result of their parse method. As this may not work
+        with any combinations of SAX drivers and filters, a join of
+        $ya->{Strings} in the controling method is prefered.
+
+    Encoding string
+        This will change the default encoding from UTF-8 to anything you
+        like. You should ensure that given data is already in this encoding
+        or provide a Escape hash, to tell YAWriter the recoding.
+
+    Escape hash
+        The Escape hash defines substitutions that have to be done to any
+        string, with the execption of the processing_intruction and
+        doctype_decl methods, where I think that escaping of target and data
+        would cause more trouble, than necessary.
+
+        The default value for Escape is
+
+                $XML::Handler::YAWriter::escape = {
+                                '&'  => '&amp;',
+                                '<'  => '&lt;',
+                                '>'  => '&gt;',
+                                '"'  => '&quot;',
+                                '--' => '&#45;&#45;'
+                                };
+
+        YAWriter will use an evaluated sub to make the recoding based on a
+        given Escape hash resonable fast. Future versions may use XS to
+        improve this performance bottleneck.
+
+    IsSGML boolean
+        This option will cause start_document, processing_instruction and
+        doctype_decl to appear as SGML. The SGML is still wellformed of
+        course, if your SAX events are wellformed.
+
+    Pretty hash
+        Hash of string => boolean tuples, to define kind of prettyprinting.
+        Default to undef. Possible string values:
+
+        AddHiddenNewLine boolean
+            Add hidden newline before ">"
+
+        AddHiddenAttrTab boolean
+            Add hidden tabulation for attributes ">"
+
+        CatchEmptyElement boolean
+            Catch emtpy Elements apply "/>" compression
+
+        CatchWhiteSpace boolean
+            Catch whitespace with comments
+
+        NoComments boolean
+            Supress Comments
+
+        NoDTD boolean
+            Supress DTD
+
+        NoPI boolean
+            Supress Processing Instructions
+
+        NoWhiteSpace boolean
+            Supress WhiteSpace
+
+        PrettyWhiteIndent boolean
+            Add visible indent before any eventstring
+
+        PrettyWhiteNewline boolean
+            Add visible newlines before any eventstring
+
+        SAX1 boolean (not yet implemented)
+            Output only SAX1 compilant eventstrings
+
+  Notes:
+
+    XML::Handler::YAWriter was unbundled from XML::Edifact. The next
+    XML::Edifact will need a XML Writer with a similar scope.
+
+    AsString and AsArray may run out of memory with infinitve SAX streams.
+    Use a self written object instead to improve streaming. The only thing
+    XML::Handler::Writer wants from the object is a print method. For small
+    documents AsArray may be the fastest method and AsString the easiest
+    one.
+
+    Automatic recoding between 8bit and 16bit does not yet work correctly !
+
+    I have Perl-5.00560 at home and here I can claim "use utf8;" in the
+    right places to make recoding work. But I dislike to claim "use
+    5.00555;" because many systems run 5.00503.
+
+    If you use some 8bit character set internaly and want use national
+    characters, state either your character as Encoding to be ISO-8859-1, or
+    use an Escape hash like the following :
+
+            $ya->{'Escape'} = {
+                            '&'  => '&amp;',
+                            '<'  => '&lt;',
+                            '>'  => '&gt;',
+                            '"'  => '&quot;',
+                            '--' => '&#45;&#45;'
+                            'ö' => '&ouml;'
+                            'ä' => '&auml;'
+                            'ü' => '&uuml;'
+                            'Ö' => '&Ouml;'
+                            'Ä' => '&Auml;'
+                            'Ü' => '&Uuml;'
+                            'ß' => '&szlig;'
+                            };
+
+    You may abuse YAWriter to clean XML documents from whitespace. Take a
+    look at test.pl, doing just that with an XML::Edifact message, without
+    querying the DTD. This may work in 99% of the cases, where you want to
+    get rid of ignorable whitespace.
+
+            my $ya = new XML::Handler::YAWriter( 
+                    'Output' => new IO::File ( ">-" );
+                    'Pretty' => {
+                            'NoWhiteSpace'=>1,
+                            'NoComments'=>1,
+                            'AddHiddenNewLine'=>1,
+                            'AddHiddenAttrTab'=>1,
+                    } );
+
+    XML::Handler::Writer implements any method XML::Parser::PerlSAX wants.
+    This extens the Java SAX1.0 specifcation. I think to use Pretty=>SAX1=>1
+    to disable this feature, if abusing YAWriter for a SAX proxy.
+
+AUTHOR
+    Michael Koehne, Kraehe@Copyleft.De
+
+Thanks
+    "Derksen, Eduard (Enno), CSCIO" <enno@att.com> helped me with the Escape
+    hash and gave quite a lot of usefull comments.
+
+SEE ALSO
+    perl(1), XML::Parser::PerlSAX(3)
+
