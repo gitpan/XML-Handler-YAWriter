@@ -80,3 +80,15 @@ print "ok 5\n";
    $parser->parse( 'Source' => { 'SystemId' => 'directory.xml' } );
 
 print "ok 6\n";
+
+   $handler->{'AsFile'} = 'cdataout.xml';
+   $handler->{'Pretty'} = {
+        'NoWhiteSpace' 	     => 1,
+        'PrettyWhiteNewLine' => 1,
+        'PrettyWhiteIndent'  => 1,
+        'CatchEmptyElement'  => 1,
+        'CompactAttrIndent'  => 1
+	};
+   $parser->parse( 'Source' => { 'SystemId' => 'cdatain.xml' } );
+
+print "ok 7\n";
